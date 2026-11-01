@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Advanced YouTube Search</title>
+<style>
+:root {
+  --site-primary: #ff3b30;
+  --site-secondary: #16181d;
+  --site-background: #f4f5f7;
+  --site-on-primary: #ffffff;
+  --site-on-secondary: #ffffff;
+  --site-on-background: #17191f;
+  --site-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --site-font-heading: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --site-heading-scale: 1;
+  --site-spacing-scale: 1;
+  --site-radius-scale: 1;
+  --site-decoration-opacity: 1;
+  color-scheme: light dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; font-family: var(--site-font-body); color: var(--site-on-background); }
+body { background: var(--site-background); }
+#app {
+  min-height: 100vh;
+  border-radius: 0;
+  background: var(--site-background);
+}
+header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--site-secondary);
+  color: var(--site-on-secondary);
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+.header-inner {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: calc(16px * var(--site-spacing-scale)) calc(24px * var(--site-spacing-scale));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.brand { display:flex; align-items:center; gap:12px; }
+.logo {
+  width: 38px; height: 27px; border-radius: 8px;
+  background: var(--site-primary); display:grid; place-items:center;
+  font-weight:900; font-size:14px;
+}
+h1 {
+  font-family: var(--site-font-heading);
+  font-size: calc(1.35rem * var(--site-heading-scale));
+  margin: 0;
+}
+.header-note { opacity:.7; font-size:.86rem; }
+.layout {
+  max-width: 1500px;
+  margin: 0 auto;
+  display:grid;
+  grid-template-columns: 300px minmax(0,1fr);
+  gap: calc(24px * var(--site-spacing-scale));
+  padding: calc(24px * var(--site-spacing-scale));
+}
+.sidebar {
+  position: sticky;
+  top: 86px;
+  align-self: start;
+  max-height: calc(100vh - 110px);
+  overflow:auto;
+  background: light-dark(#ffffff,#17191d);
+  border: 1px solid light-dark(#e2e4e8,#30333a);
+  border-radius: calc(16px * var(--site-radius-scale));
+  padding: calc(18px * var(--site-spacing-scale));
+}
+.sidebar h2, .results-head h2 {
+  font-size: calc(1rem * var(--site-heading-scale));
+  margin: 0 0 14px;
+}
+.form-grid { display:grid; gap:11px; }
+label { font-size:.78rem; font-weight:700; display:block; margin-bottom:5px; }
+input, select, button {
+  font: inherit;
+}
+input[type="text"], input[type="datetime-local"], input[type="date"], select {
+  width:100%;
+  padding:9px 10px;
+  border:1px solid light-dark(#d3d6dc,#3a3e46);
+  border-radius:calc(9px * var(--site-radius-scale));
+  background:light-dark(#fff,#101216);
+  color:inherit;
+}
+button {
+  border:0; border-radius:calc(10px * var(--site-radius-scale));
+  padding:11px 14px; cursor:pointer; font-weight:800;
+}
+.primary { background:var(--site-primary); color:var(--site-on-primary); }
+.secondary { background:light-dark(#eceef1,#2a2e35); color:inherit; }
+button:disabled { opacity:.55; cursor:not-allowed; }
+details { border-top:1px solid light-dark(#e4e6ea,#30333a); padding-top:12px; margin-top:14px; }
+summary { cursor:pointer; font-weight:800; font-size:.86rem; }
+.help { font-size:.7rem; color:light-dark(#69707c,#aeb4c0); line-height:1.35; margin-top:4px; }
+.results { min-width:0; }
+.results-head {
+  display:flex; justify-content:space-between; align-items:end; gap:15px;
+  margin-bottom:14px;
+}
+.status { font-size:.82rem; color:light-dark(#646b77,#b5bac4); }
+.filters {
+  background:light-dark(#fff,#17191d);
+  border:1px solid light-dark(#e2e4e8,#30333a);
+  border-radius:calc(14px * var(--site-radius-scale));
+  padding:14px 16px;
+  margin-bottom:18px;
+}
+.filter-row { display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
+.range-values { display:flex; justify-content:space-between; font-size:.75rem; margin-bottom:4px; }
+input[type="range"] { width:100%; accent-color:var(--site-primary); }
+.empty {
+  padding:70px 20px; text-align:center;
+  border:1px dashed light-dark(#cdd1d8,#41454e);
+  border-radius:calc(16px * var(--site-radius-scale));
+}
+.video-card {
+  display:grid;
+  grid-template-columns:minmax(380px, 58%) minmax(0,1fr);
+  gap:20px;
+  padding:18px;
+  margin-bottom:18px;
+  background:light-dark(#fff,#17191d);
+  border:1px solid light-dark(#e2e4e8,#30333a);
+  border-radius:calc(16px * var(--site-radius-scale));
+  box-shadow:0 5px 20px rgba(0,0,0,.05);
+}
+.video-frame { aspect-ratio:16/9; width:100%; background:#090a0c; border-radius:10px; overflow:hidden; }
+.video-frame iframe { width:100%; height:100%; border:0; }
+.video-info { min-width:0; display:flex; flex-direction:column; }
+.video-title { font-size:1.02rem; line-height:1.35; font-weight:800; margin:0 0 9px; }
+.meta { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:13px; }
+.pill {
+  padding:5px 8px; border-radius:999px;
+  background:light-dark(#eef0f3,#292d34);
+  font-size:.72rem;
+}
+.description { font-size:.8rem; line-height:1.5; color:light-dark(#606773,#b9bec7); }
+.channel { font-weight:700; font-size:.82rem; margin-bottom:8px; }
+.error {
+  padding:12px 14px; border-radius:10px;
+  background:light-dark(#fff0ef,#351c1b); color:light-dark(#9e241d,#ffb4ad);
+  margin-bottom:16px; font-size:.82rem;
+}
+.range-pair { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.small { font-size:.7rem; color:light-dark(#6d7480,#aeb4bf); }
+@media (prefers-color-scheme: dark) {
+  :root { --site-background:#0f1114; --site-on-background:#f1f3f6; }
+}
+@media (max-width: 980px) {
+  .layout { grid-template-columns:1fr; }
+  .sidebar { position:relative; top:0; max-height:none; }
+}
+@media (max-width: 700px) {
+  .video-card { grid-template-columns:1fr; }
+  .filter-row { grid-template-columns:1fr; }
+  .header-note { display:none; }
+  .layout { padding:14px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="header-inner">
+    <div class="brand"><div class="logo">▶</div><div><h1>Advanced YouTube Search</h1><div class="header-note">YouTube Data API • up to 50 videos per search</div></div></div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <h2>Search parameters</h2>
+    <form id="searchForm" class="form-grid">
+      <div>
+        <label for="apiKey">YouTube API key</label>
+        <input id="apiKey" type="text" placeholder="Paste your API key">
+      </div>
+      <div>
+        <label for="q">q — search terms</label>
+        <input id="q" type="text" placeholder="e.g. French cooking">
+      </div>
+      <div>
+        <label for="order">order</label>
+        <select id="order">
+          <option value="relevance">Relevance</option><option value="date">Date</option>
+          <option value="rating">Rating</option><option value="title">Title</option>
+          <option value="viewCount">View count</option>
+        </select>
+      </div>
+      <div>
+        <label for="channelId">channelId</label>
+        <input id="channelId" type="text" placeholder="Optional channel ID">
+      </div>
+      <div>
+        <label for="publishedAfter">publishedAfter</label>
+        <input id="publishedAfter" type="datetime-local">
+      </div>
+      <div>
+        <label for="publishedBefore">publishedBefore</label>
+        <input id="publishedBefore" type="datetime-local">
+      </div>
+      <div>
+        <label for="regionCode">regionCode</label>
+        <select id="regionCode">
+          <option value="">Any region</option><option value="FR">France (FR)</option>
+          <option value="NL">Netherlands (NL)</option><option value="GB">United Kingdom (GB)</option>
+          <option value="US">United States (US)</option><option value="CA">Canada (CA)</option>
+          <option value="BE">Belgium (BE)</option><option value="ES">Spain (ES)</option>
+          <option value="DE">Germany (DE)</option><option value="CH">Switzerland (CH)</option>
+        </select>
+      </div>
+      <div>
+        <label for="relevanceLanguage">relevanceLanguage</label>
+        <select id="relevanceLanguage">
+          <option value="">Any language</option><option value="fr">French (fr)</option>
+          <option value="en">English (en)</option><option value="es">Spanish (es)</option>
+          <option value="nl">Dutch (nl)</option><option value="de">German (de)</option>
+        </select>
+      </div>
+      <div>
+        <label for="safeSearch">safeSearch</label>
+        <select id="safeSearch"><option value="none">None</option><option value="moderate">Moderate</option><option value="strict">Strict</option></select>
+      </div>
+      <div>
+        <label for="videoDuration">videoDuration</label>
+        <select id="videoDuration"><option value="">Any duration</option><option value="short">Short (&lt;4 min)</option><option value="medium">Medium (4–20 min)</option><option value="long">Long (&gt;20 min)</option></select>
+      </div>
+      <div>
+        <label for="videoDefinition">videoDefinition</label>
+        <select id="videoDefinition"><option value="">Any</option><option value="high">HD</option><option value="standard">Standard</option>
+        </select>
+      </div>
+      <div>
+        <label for="videoCaption">videoCaption</label>
+        <select id="videoCaption"><option value="">Any</option><option value="any">Any caption status</option><option value="closedCaption">Closed captions</option><option value="none">No captions</option></select>
+      </div>
+      <div>
+        <label for="videoCategoryId">videoCategoryId</label>
+        <input id="videoCategoryId" type="text" placeholder="e.g. 10 = Music">
+        <div class="help">Use a YouTube video category ID.</div>
+      </div>
+      <div>
+        <label for="videoEmbeddable">videoEmbeddable</label>
+        <select id="videoEmbeddable"><option value="">Any</option><option value="true">Embeddable</option><option value="false">Not embeddable</option></select>
+      </div>
+      <div>
+        <label for="videoLicense">videoLicense</label>
+        <select id="videoLicense"><option value="">Any</option><option value="any">Any</option><option value="creativeCommon">Creative Commons</option></select>
+      </div>
+      <div>
+        <label for="videoSyndicated">videoSyndicated</label>
+        <select id="videoSyndicated"><option value="">Any</option><option value="true">Syndicated</option><option value="false">Not syndicated</option></select>
+      </div>
+      <div>
+        <label for="videoType">videoType</label>
+        <select id="videoType"><option value="">Any</option><option value="any">Any</option><option value="episode">Episode</option><option value="movie">Movie</option>
+        </select>
+      </div>
+      <button class="primary" type="submit">Search YouTube</button>
+      <button class="secondary" type="button" id="resetBtn">Reset form</button>
+    </form>
+  </aside>
+
+  <main class="results">
+    <div class="results-head">
+      <div><h2>Results</h2><div id="status" class="status">Configure your search and run it.</div></div>
+      <div id="count" class="status"></div>
+    </div>
+    <div id="fileWarning" class="error" hidden>This page is opened as <code>file://</code>, so YouTube embeds will return Error 153. Download the companion Ubuntu launcher <strong>Start Advanced YouTube Search.sh</strong> and keep it in the same folder as this HTML file. Right-click it, choose <strong>Properties → Permissions</strong>, enable <strong>Allow executing file as program</strong>, then double-click it and choose <strong>Run</strong>. It starts a local server and opens this page automatically. The launcher requires Ubuntu's standard <code>python3</code> package.</div>
+    <div id="error"></div>
+
+    <div id="resultsList">
+      <div class="empty"><strong>No results yet.</strong><br>Enter an API key and search parameters, then click “Search YouTube”.</div>
+    </div>
+  </main>
+</div>
+</div>
+
+<script>
+/*
+  Advanced YouTube Search
+  The API key is deliberately kept in the UI rather than hard-coded.
+  To hard-code it for a private page, replace getApiKey() with:
+  return "YOUR_API_KEY";
+*/
+function openLocalServer() {
+  const port = 8000;
+  const base = location.pathname.substring(0, location.pathname.lastIndexOf("/") + 1);
+  const target = `http://127.0.0.1:${port}${base}${encodeURIComponent(location.pathname.split("/").pop())}`;
+  const helper = `#!/bin/bash\nSCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"\ncd "$SCRIPT_DIR" || exit 1\npython3 -m http.server ${port} --bind 127.0.0.1 >/tmp/advanced-youtube-search-server.log 2>&1 &\npid=$!\ntrap 'kill $pid 2>/dev/null' EXIT\nsleep 1\nxdg-open "http://127.0.0.1:${port}/" >/dev/null 2>&1\nwait $pid`;
+  const blob = new Blob([helper], {type: "text/x-shellscript"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "Start Advanced YouTube Search.sh";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+const $ = id => document.getElementById(id);
+const fields = [
+  "q","order","channelId","publishedAfter","publishedBefore","regionCode",
+  "relevanceLanguage","safeSearch","videoDuration","videoDefinition",
+  "videoCaption","videoCategoryId","videoEmbeddable","videoLicense",
+  "videoSyndicated","videoType"
+];
+
+let allResults = [];
+
+function getApiKey() {
+  return $("apiKey").value.trim();
+}
+function isoFromLocal(value) {
+  if (!value) return "";
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!match) throw new Error("Please enter a valid date and time.");
+  const date = new Date(+match[1], +match[2] - 1, +match[3], +match[4], +match[5], 0, 0);
+  if (Number.isNaN(date.getTime())) throw new Error("Please enter a valid date and time.");
+  return date.toISOString();
+}
+function durationSeconds(iso) {
+  if (!iso) return 0;
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return 0;
+  return (+m[1]||0)*3600 + (+m[2]||0)*60 + (+m[3]||0);
+}
+function durationLabel(sec) {
+  if (sec == null) return "unavailable";
+  return fmtDuration(sec);
+}
+function fmtDuration(sec) {
+  const h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), s = sec%60;
+  return h ? `${h}h ${String(m).padStart(2,"0")}m` : `${m}m ${String(s).padStart(2,"0")}s`;
+}
+function fmtNumber(n) {
+  return n == null ? "—" : Number(n).toLocaleString();
+}
+function esc(s="") {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+$("searchForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("error").innerHTML = "";
+  const key = getApiKey();
+  if (!key) { showError("Please provide a YouTube Data API key."); return; }
+
+  const params = new URLSearchParams({
+    part: "snippet",
+    type: "video",
+    maxResults: "50",
+    key
+  });
+
+  for (const id of fields) {
+    let v = $(id).value;
+    if (id === "publishedAfter" || id === "publishedBefore") v = isoFromLocal(v);
+    if (v) params.set(id, v);
+  }
+
+  $("status").textContent = "Searching YouTube…";
+  $("count").textContent = "";
+  $("resultsList").innerHTML = "";
+
+  try {
+    // Exactly one API request per search. The player embeds are separate
+    // iframe loads performed by YouTube's player, not Data API searches.
+    const url = "https://www.googleapis.com/youtube/v3/search?" + params.toString();
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || `YouTube API error (${res.status})`);
+
+    allResults = data.items || [];
+    await enrichWithVideoDetails(allResults, key);
+    $("status").textContent = "Search complete.";
+    $("count").textContent = `${allResults.length} results`;
+    renderResults(allResults);
+  } catch (err) {
+    showError(err.message + " If this page is opened from a restrictive file:// context, use a local web server so browser CORS rules allow the request.");
+    $("status").textContent = "Search failed.";
+  }
+});
+
+async function enrichWithVideoDetails(items, key) {
+  /*
+    The user requested one API call per search, so no videos.list call is made.
+    search.list returns snippet data only; views/likes/duration require
+    videos.list and therefore cannot be retrieved without a second API call.
+    We leave those fields as unavailable and still render every result.
+  */
+  allResults = items.map(x => ({
+    ...x,
+    durationSec: null,
+    statistics: null
+  }));
+}
+
+function showError(msg) {
+  $("error").innerHTML = `<div class="error">${esc(msg)}</div>`;
+}
+
+function updateFileWarning() {
+  $("fileWarning").hidden = location.protocol !== "file:";
+  if (location.protocol === "file:") {
+    const launcher = document.createElement("button");
+    launcher.type = "button";
+    launcher.className = "primary";
+    launcher.textContent = "Create Ubuntu launcher";
+    launcher.addEventListener("click", openLocalServer);
+    $("fileWarning").appendChild(document.createElement("br"));
+    $("fileWarning").appendChild(document.createElement("br"));
+    $("fileWarning").appendChild(launcher);
+  }
+}
+
+function renderResults(items) {
+  if (!items.length) {
+    $("resultsList").innerHTML = `<div class="empty"><strong>No videos match the current filters.</strong><br>Adjust the duration or publish-date range.</div>`;
+    return;
+  }
+  $("resultsList").innerHTML = items.map(item => {
+    const s = item.snippet || {};
+    const id = item.id?.videoId;
+    const thumb = s.thumbnails?.high?.url || s.thumbnails?.medium?.url || "";
+    const desc = s.description || "";
+    const published = s.publishedAt ? new Date(s.publishedAt).toLocaleString() : "Unknown date";
+    const playerUrl = id ? `https://www.youtube.com/embed/${encodeURIComponent(id)}?widget_referrer=${encodeURIComponent(location.href)}` : "";
+    return `<article class="video-card">
+      <div class="video-frame">
+        ${id ? `<iframe src="${playerUrl}" title="${esc(s.title)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>` : `<img src="${esc(thumb)}" alt="">`}
+      </div>
+      <div class="video-info">
+        <h3 class="video-title">${esc(s.title)}</h3>
+        <div class="channel">${esc(s.channelTitle || "Unknown channel")}</div>
+        <div class="meta">
+          <span class="pill">Published ${esc(published)}</span>
+          <span class="pill">Views: unavailable</span>
+          <span class="pill">Likes: unavailable</span>
+          <span class="pill">Duration: ${esc(durationLabel(item.durationSec))}</span>
+        </div>
+        <div class="description">${esc(desc)}</div>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+$("resetBtn").addEventListener("click", () => {
+  $("searchForm").reset();
+  allResults = [];
+  $("status").textContent = "Configure your search and run it.";
+  $("count").textContent = "";
+  $("error").innerHTML = "";
+  $("resultsList").innerHTML = `<div class="empty"><strong>No results yet.</strong><br>Enter an API key and search parameters, then click “Search YouTube”.</div>`;
+});
+
+updateFileWarning();
+</script>
+</body>
+</html>
